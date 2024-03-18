@@ -1,0 +1,262 @@
+#pragma once
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <windows.h>
+
+using namespace std;
+
+int months_count_of_day[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+string days[] = { "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС" };
+string month_names[24] = {
+    "Январь", "Февраль", "Март",     " Апрель", "Май",    "Июнь",
+    "Июль",   "Август",  "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+    "Январь", "Февраль", "Март",     " Апрель", "Май",    "Июнь",
+    "Июль",   "Август",  "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" };
+const int Rows = 4;
+const int Cols = 3;
+
+int DayWeek(int Day, int Month, int Year) {
+    int DaysInYears, AllDays, DaysInMonths, Weeks, DayWeek;
+    if (Month < 3) {
+        Month = Month + 12;
+        Year = Year - 1;
+    }
+    Month = Month + 1;
+    DaysInMonths = Month * 30.6;
+    DaysInYears = Year * 365.25;
+    AllDays = DaysInMonths + DaysInYears + Day - 114;
+    Weeks = AllDays / 7;
+    DayWeek = AllDays - Weeks * 7;
+    return DayWeek;
+}
+
+int GetIntFromArg(
+    char arg[]) { //Перевод месяца и года из аргументов командной строки в число
+    char int_mas[20];
+    int i = 2;
+    for (; arg[i]; ++i) {
+        int_mas[i - 2] = arg[i];
+    }
+    int_mas[i - 1] = '\0';
+    return atoi(int_mas);
+}
+
+string GetFileName(char arg[]) { //Получение названия файла из аргумента
+    string cmd_string(arg);
+    string file_string;
+    for (int i = 2; i < cmd_string.size(); ++i)
+        file_string.push_back(cmd_string[i]);
+    return file_string;
+}
+
+int main(int argc, char* argv[]) {
+    setlocale(0, "");
+    bool to_file = false;
+    string filename;
+    int temp;
+    int all_months[Cols][Rows][7][6]{};
+    bool is_red[Cols][Rows][7][6];
+
+    for (int a = 0; a < Cols; a++) {
+        for (int b = 0; b < Rows; b++) {
+            for (int c = 0; c < 7; c++) {
+                for (int d = 0; d < 6; d++) {
+                    if (c == 5 or c == 6) {
+                        is_red[a][b][c][d] = true;
+                    }
+                    else {
+                        is_red[a][b][c][d] = false;
+                    }
+                }
+            }
+        }
+    }
+
+    int month_now = -1, year_now = -1;
+
+    for (int i = 1; i < argc; ++i) {
+        switch (argv[i][1]) {
+        case 'M':
+            temp = GetIntFromArg(argv[i]);
+            if (temp <= 12 and temp >= 1) {
+                month_now = temp;
+                break;
+            }
+        case 'Y':
+            temp = GetIntFromArg(argv[i]);
+            if (temp <= 10000 and temp >= -10000) {
+                year_now = temp;
+                break;
+            }
+        case 'F':
+            filename = GetFileName(argv[i]);
+            if (strcmp(argv[i] + 2, "CON") != 0) {
+                to_file = true;
+                cout << to_file;
+            }
+            break;
+        case '?':
+            cout << "Данная программа выводит календарь на 12 месяцев, начиная с "
+                "заданного. Аргументы при вызове из командной строки:\n"
+                << "/F - название файла для вывода, CON для вывода в командную "
+                "строку\n/M - номер месяца\n/Y - номер года\n/? - справка\n";
+            break;
+        default:
+            break;
+        }
+    }
+
+    string Month;
+    string Year;
+    // Если не получены значения из аргументов cmd
+    if (month_now == -1) {
+        cout << "Введите месяц: ";
+        cin >> Month;
+        int k = 0, i = 0;
+        while (Month[i]) {
+            if (isdigit(Month[i])) {
+                k++;
+                break;
+            }
+            i++;
+        }
+        if (k != 1) {
+            cout << "Ошибка: Некорректное значение максимальной длинны строки"
+                << endl;
+            exit(3);
+        }
+        else {
+            month_now = std::stoi(Month);
+        };
+    }
+    if (year_now == -1) {
+        cout << "Введите год: ";
+        cin >> Year;
+        int k = 0, i = 0;
+        while (Year[i]) {
+            if (isdigit(Year[i])) {
+                k++;
+                break;
+            }
+            i++;
+        }
+        if (k != 1) {
+            cout << "Ошибка: Некорректное значение максимальной длинны строки"
+                << endl;
+            exit(3);
+        }
+        else {
+            year_now = std::stoi(Year);
+        };
+    }
+
+    // проверка на високосный год
+    if ((year_now % 4 == 0) and (year_now % 100 != 0) and (year_now % 400 != 0)) {
+        months_count_of_day[1] = 29;
+    }
+    // заполнение числами всего массива
+    int cur_month = month_now;
+    int cur_year = year_now;
+    for (int b = 0; b < Rows; b++) {
+        for (int a = 0; a < Cols; a++) {
+            int start_of_month = DayWeek(1, cur_month, cur_year);
+            int day_n = 1;
+            for (int i = 0; i < 6; i++) {
+                for (int j = 0; j < 7; j++) {
+                    if ((start_of_month == 0 and (i == 0) and j != 6) or
+                        (i == 0 and j < (start_of_month - 1)) or
+                        (day_n > months_count_of_day[cur_month - 1])) {
+                        all_months[a][b][j][i] = 0;
+                    }
+                    else {
+                        all_months[a][b][j][i] = day_n++;
+                    }
+                }
+            }
+            cur_month = cur_month + 1;
+            if (cur_month > 12) {
+                cur_month = 1;
+                cur_year = cur_year + 1;
+                if ((cur_year % 4 == 0) and (cur_year % 100 != 0) and
+                    (cur_year % 400 != 0)) {
+                    months_count_of_day[1] = 29;
+                }
+                else {
+                    months_count_of_day[1] = 28;
+                }
+            }
+        }
+    }
+
+    // cout << to_file << endl;
+    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    // вывод в файл или консоль
+    if (to_file) {
+        ofstream file_out;
+        file_out.open(filename);
+
+        for (int a = 0; a < Rows; ++a) {
+            file_out << "\t" << setw(17) << left << month_names[month_now - 1] << "\t"
+                << setw(17) << left << month_names[month_now] << "\t" << setw(17)
+                << left << month_names[month_now + 1] << endl;
+            for (int i = 0; i < 7; ++i) {
+                for (int b = 0; b < Cols; ++b) {
+                    file_out << days[i];
+                    for (int j = 0; j < 6; ++j) {
+                        temp = all_months[b][a][i][j];
+                        if (temp) {
+                            if (is_red[b][a][i][j]) {
+                                file_out << setw(3) << right << "*" << all_months[b][a][i][j];
+                            }
+                            else {
+                                file_out << setw(3) << right << all_months[b][a][i][j];
+                            }
+                        }
+                        else
+                            file_out << "   ";
+                    }
+                    file_out << "\t";
+                }
+                file_out << endl;
+            }
+            month_now += 3;
+            file_out << endl << endl;
+        }
+    }
+    else {
+        for (int a = 0; a < Rows; ++a) {
+            cout << "\t\t" << setw(17) << left << month_names[month_now - 1] << "\t"
+                << setw(17) << left << month_names[month_now] << "\t" << setw(17)
+                << left << month_names[month_now + 1] << endl;
+            for (int i = 0; i < 7; ++i) {
+                for (int b = 0; b < Cols; ++b) {
+                    cout << days[i];
+                    for (int j = 0; j < 6; ++j) {
+                        temp = all_months[b][a][i][j];
+                        if (temp) {
+                            if (is_red[b][a][i][j]) {
+                                SetConsoleTextAttribute(handle, 0xc0);
+                            }
+                            else {
+                                SetConsoleTextAttribute(handle, 0x0f);
+                            }
+                            cout << setw(3) << right << all_months[b][a][i][j];
+                        }
+                        else {
+                            cout << "   ";
+                            SetConsoleTextAttribute(handle, 0x0f);
+                        }
+                    }
+                    cout << "\t";
+                }
+                cout << endl;
+            }
+            month_now += 3;
+            cout << endl << endl;
+        }
+    }
+    return 0;
+}
