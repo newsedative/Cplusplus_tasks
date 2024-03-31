@@ -1,0 +1,115 @@
+// program Ptr_Arr18;
+#include <iostream>
+#include <iomanip>
+#include <vld.h>
+using namespace std;
+
+typedef
+float* Arr4Ptr[4]; // Массив из 4-х указателей - компоненты строки
+Arr4Ptr* Arr3Ptr[3]; // Массив из трех указателей - строки
+
+int Row, Col;
+float Val;
+
+void OutArr(); // Вывод не полностью определенного массива
+
+int main() {
+    setlocale(0, "");
+    cout << "Содержимое структуры по умолчанию\n";
+    OutArr();
+    cout << "\nСоздание структуры и ввод данных\n";
+    cout << "Ввод целых чисел: \n";
+
+
+
+    for (Row = 0; Row < 3; Row = Row + 1)
+        if (Row == 0) // 1-я строка пуста
+            Arr3Ptr[Row] = nullptr;
+        else {
+            cout << setw(3) << "Ряд " << Row << ". "; // Номер строки
+            // Создаем массив из 4-х указателей}
+            Arr3Ptr[Row] = new Arr4Ptr[1];
+            for (Col = 0; Col < 4; Col = Col + 1) {
+                (*Arr3Ptr[Row])[Col] = new float;
+                cin >> Val;
+                *(*Arr3Ptr[Row])[Col] = Val;
+            };
+        };
+    cout << "\nСодержимое памяти после создания структуры и ввода данных\n";
+    OutArr();
+    cout << "\nВведите компонет [0][1]: ";
+    // Создаем массив из 4-х указателей для строки 0
+    Arr3Ptr[0] = new Arr4Ptr[1];
+    for (Col = 0; Col < 4; Col = Col + 1)
+        if (Col == 1) {
+            (*Arr3Ptr[0])[Col] = new float;
+            cin >> Val;
+            *(*Arr3Ptr[0])[Col] = Val;
+        }
+        else // Col = 0,2,3
+        // Остальные три компонента отсутствуют
+            (*Arr3Ptr[0])[Col] = nullptr;
+    cout << "Содержимое памяти после добавления компонента\n";
+    OutArr();
+    cout << "\nУдаляем компонент [2][1]\n";
+    // Освободить память от компонента
+    delete (*Arr3Ptr[2])[1];
+    // Указатель обнулить в знак отсутствия компонента
+    (*Arr3Ptr[2])[1] = nullptr;
+    cout << "Содержимое памяти после удаления компонента\n";
+    OutArr();
+    cout << "\nМеняем компонет [1][2] \n";
+    // Просто вводим новое значение и преобразуем тип
+    cin >> Val;
+    *(*Arr3Ptr[1])[2] = Val;
+    cout << "Содержимое памяти после изменения компонента\n";
+    OutArr();
+    cout << "\nОсвобождаем всю занятую динамическую память\n";
+    // Для всех строк
+    for (Row = 0; Row < 3; Row++)
+        // Если строка содержит компоненты
+        if (Arr3Ptr[Row] != nullptr) {
+            // Для всех компонентов строки
+            for (Col = 0; Col < 4; Col++)
+                // Если компонент имеется
+                if ((*Arr3Ptr[Row])[Col] != nullptr) {
+                    // Уничтожить его
+                    delete (*Arr3Ptr[Row])[Col];
+                    // И установить признак его отсутствия
+                    (*Arr3Ptr[Row])[Col] = nullptr;
+                };
+            // Освободить память от массива из 4-х указателей
+            delete[] Arr3Ptr[Row];
+            Arr3Ptr[Row] = nullptr; // Ряд стал пуст
+        };
+    cout << "\nВывод для проверки - всё ли освободили?\n";
+    OutArr();
+    cin.get();
+    return 0;
+}
+// Вывод не полностью определенного массива
+void OutArr() {
+    char Row, Col;
+    cout << setw(6) << "18) "; // Номер варианта задания
+    // Вывод номеров компонентов строки - номера столбцов
+    for (Col = 0; Col < 4; Col++)
+        cout << setw(6) << int(Col);
+    cout << endl;
+    // Для всех строк
+    for (Row = 0; Row < 3; Row++) {
+        cout << setw(6) << int(Row); // Номер строки}
+        // Если компонентов в строке нет
+        if (Arr3Ptr[Row] == nullptr)
+            cout << setw(10) << "Ряд пуст";
+        else
+            // Для всех компонентов строки
+            for (Col = 0; Col < 4; Col += 1)
+                if ((*Arr3Ptr[Row])[Col] == nullptr)
+                    cout << setw(6) << "null"; // Компонент отсутствует
+                else
+                    // Значение компонента
+                    cout << setw(6) << *(*Arr3Ptr[Row])[Col];
+        cout << endl;
+    };
+    return;
+}
