@@ -1,0 +1,154 @@
+#include <iostream>
+#include <fstream> // ifstream, ofstream
+#include <cstdlib> // atoi(), exit()
+#include <cstring> // strcpy()
+#include <iomanip> // setw()
+#include <string>
+using namespace std;
+
+
+string GetFileName(char arg[]);
+bool isInsideQuotes(const string& line, size_t pos);
+
+
+int main(int argc, char* argv[])
+{
+    setlocale(0, "");
+
+    string input_file = "";
+    string output_file = "";
+
+
+    for (int i = 1; i < argc; ++i) {
+        switch (argv[i][1])
+        {
+        case 'I':
+            input_file = GetFileName(argv[i]);
+            break;
+        case 'O':
+            output_file = GetFileName(argv[i]);
+            break;
+        }
+    }
+
+    if (input_file == "") {
+        cout << "Введите название файла для анализа: ";
+        cin >> input_file;
+    }
+
+    if (output_file == "") {
+        cout << "Введите название конечного файла: ";
+        cin >> output_file;
+    }
+
+    // Откpытие файлов и пpовеpка
+    ifstream FileIn; // Входной файловый поток
+    fstream FileOut; // Выходной файловый поток
+
+
+    // Пpовеpка наличия файла
+    FileOut.open(output_file, ios_base::in);
+    if (FileOut) {
+        cout << "\n Файл существует: \""
+            << output_file << "\"";
+        cout << "\n Пеpеписать ? [Да:1 , Нет:0] ";
+        int answer;
+        cin >> answer;
+        FileOut.close();
+        if (!answer) /* Если не переписывать,*/
+            exit(3); /* то прерываем программу
+        */
+    }
+    // Открыть входной файл на чтение 
+    FileIn.open(input_file);
+    if (!FileIn) { // Проверка открытия
+        cout << "\n Не могу откpыть входной файл: \""
+            << input_file << "\"";
+        exit(4);
+    }
+    // Открыть новый выходной файл на запись
+    FileOut.open(output_file, std::ios::out);
+    if (!FileOut) { // Проверка открытия
+        cout << "\n Не могу откpыть выходной файл: \""
+            << output_file << "\"";
+        exit(5);
+    }
+    cout << "\n Содеpжимое входного файла: \n";
+
+
+    string s;
+    string res;
+    int lineNumber = 1;
+    bool insideMultiLineComment = false;
+    while (getline(FileIn, s)) {
+        // Поиск строчных комментариев
+        size_t commentPos = s.find("//");
+        size_t multiLineCommentStart = s.find("/*");
+        size_t multiLineCommentEnd = s.find("*/");
+        cout << lineNumber << " " << s << endl;
+        if (!insideMultiLineComment && multiLineCommentStart != string::npos && !isInsideQuotes(s, multiLineCommentStart)) {
+            insideMultiLineComment = true;
+        }
+        if (insideMultiLineComment && multiLineCommentEnd != string::npos) {
+            insideMultiLineComment = false;
+            continue; // переходим к следующей строке, пропустив многострочный комментарий
+        }
+        if (!insideMultiLineComment && commentPos != string::npos && !isInsideQuotes(s, commentPos)) {
+            string cur;
+            string comment = s.substr(commentPos); // Извлечение комментария
+            cout << lineNumber << " " << comment << endl;
+            cur = "str." + to_string(lineNumber) + " " + comment;
+            res += cur;
+            res += "\n";
+            cout << lineNumber << " " << s.substr(0, commentPos) << endl;
+
+            // Запись комментария в конец файла с указанием строки
+            FileOut << s.substr(0, commentPos) << endl;
+        }
+        else {
+            FileOut << s << endl;
+        }
+        ++lineNumber;
+    }
+    FileOut << res << endl;
+    cout << res << endl;
+
+    FileIn.close(); // Файл выведен. Закрыть.
+    FileOut.close();
+    return (0);
+} // Конец программы
+
+
+
+string GetFileName(char arg[]) { //Получение названия файла из аргумента
+    string cmd_string(arg);
+    string file_string;
+    for (int i = 2; i <= (size(cmd_string) - 1); ++i)
+        file_string.push_back(cmd_string[i]);
+    return file_string;
+}
+
+
+bool isInsideQuotes(const string& line, size_t pos) {
+    int quoteCount = 0;
+    bool insideSingleLineComment = false;
+    bool insideMultiLineComment = false;
+
+    for (size_t i = 0; i < pos; ++i) {
+        if (line[i] == '"' || line[i] == '\'') {
+            quoteCount++;
+        }
+        if (line[i] == '/' && line[i + 1] == '/' && quoteCount % 2 == 0) {
+            insideSingleLineComment = true;
+        }
+        if (line[i] == '/' && line[i + 1] == '*' && quoteCount % 2 == 0) {
+            insideMultiLineComment = true;
+        }
+        if (line[i] == '*' && line[i + 1] == '/' && quoteCount % 2 == 0) {
+            insideMultiLineComment = false;
+        }
+    }
+
+    return quoteCount % 2 == 1 || insideSingleLineComment || insideMultiLineComment;
+
+}
